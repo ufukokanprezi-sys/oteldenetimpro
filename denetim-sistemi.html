@@ -2356,34 +2356,18 @@ function yeniAtamaModal() {
           <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">
             👤 Denetçi Seç *
           </label>
-          ${kullanicilar.length === 0
-            ? `<div style="padding:12px;background:#fef2f2;border-radius:10px;font-size:13px;color:#ef4444">
-                Henüz kayıtlı denetçi bulunmuyor. Önce kullanıcı ekleyin.
-               </div>`
-            : `<div style="display:grid;gap:8px" id="denetciSecGrid">
-                ${kullanicilar.map(k=>`
-                  <label style="display:flex;align-items:center;gap:12px;
-                    padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;
-                    transition:all 0.15s" id="denetciKart_${k.id}"
-                    onmouseover="this.style.borderColor='#3b82f6';this.style.background='#f8fafc'"
-                    onmouseout="if(!document.getElementById('denetci_${k.id}').checked){this.style.borderColor='#e2e8f0';this.style.background='white'}">
-                    <input type="radio" name="atamaDenetci" id="denetci_${k.id}" value="${k.id}"
-                      style="width:16px;height:16px;accent-color:#3b82f6"
-                      onchange="denetciSecUpdate('${k.id}')">
-                    <div style="width:36px;height:36px;border-radius:50%;background:#3b82f620;
-                         color:#3b82f6;font-size:14px;font-weight:800;
-                         display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                      ${k.kullaniciAdi.charAt(0).toUpperCase()}
-                    </div>
-                    <div style="flex:1">
-                      <div style="font-size:14px;font-weight:700;color:#1e293b">${k.kullaniciAdi}</div>
-                      <div style="font-size:11px;color:#94a3b8">${k.email || ""} · 🕵️ Gizli Müşteri</div>
-                    </div>
-                    <div id="aktifAtama_${k.id}" style="font-size:11px;color:#94a3b8">
-                      ${atamalariGetir().filter(a=>a.denetciId===k.id&&a.durum==='bekliyor').length} bekliyor
-                    </div>
-                  </label>`).join("")}
-              </div>`}
+          <select id="atamaDenetciSelect"
+            style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
+            font-size:14px;outline:none;background:white;cursor:pointer"
+            onfocus="this.style.borderColor='#3b82f6'"
+            onblur="this.style.borderColor='#e2e8f0'">
+            <option value="">-- Denetçi Seçin --</option>
+            ${kullanicilar.map(k=>`
+              <option value="${k.id}" data-ad="${k.kullaniciAdi}">
+                🕵️ ${k.kullaniciAdi} (${k.email||''})
+              </option>`).join("")}
+          </select>
+          ${kullanicilar.length === 0 ? `<div style="font-size:12px;color:#ef4444;margin-top:4px">⚠️ Henüz kayıtlı denetçi bulunmuyor.</div>` : ""}
         </div>
 
         <!-- Otel Seç -->
@@ -2502,10 +2486,11 @@ function oncelikSecUpdate(val, renk, bg) {
 }
 
 function atamaKaydet() {
-  const denetciInput = document.querySelector('input[name="atamaDenetci"]:checked');
+  const denetciSelect = document.getElementById("atamaDenetciSelect");
+  const denetciInput = denetciSelect ? { value: denetciSelect.value } : document.querySelector('input[name="atamaDenetci"]:checked');
   const hataEl = document.getElementById("atamaHata");
 
-  if (!denetciInput) {
+  if (!denetciInput || !denetciInput.value) {
     hataEl.textContent = "Lütfen bir denetçi seçiniz.";
     hataEl.style.display = "block"; return;
   }
@@ -10855,7 +10840,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031305"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031306"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
