@@ -1383,7 +1383,16 @@ function kullaniciSil(id) {
     alert("Varsayılan admin silinemez."); return;
   }
   if (!confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) return;
+
+  // localStorage'dan sil
   kullanicilariKaydet(kullaniclariGetir().filter(k => k.id !== id));
+
+  // Firebase'den de sil
+  if (window._firebaseDB && window._fbDoc && window._fbDeleteDoc) {
+    window._fbDeleteDoc(window._fbDoc(window._firebaseDB, "kullanicilar", id))
+      .catch(e => console.warn("[Firebase] Kullanıcı silinemedi:", e));
+  }
+
   kullaniciListesiGoster();
 }
 
@@ -5833,7 +5842,20 @@ function atamaIptalEt(atamaId) {
 }
 function atamaSil(atamaId) {
   if (!confirm("Bu atama kaydı silinecek. Emin misiniz?")) return;
+
+  // Atamayı bul - _fbId'yi al
+  const atama = atamalariGetir().find(a => a.id === atamaId);
+
+  // localStorage'dan sil
   atamalariKaydet(atamalariGetir().filter(a => a.id !== atamaId));
+
+  // Firebase'den de sil
+  if (atama && window._firebaseDB && window._fbDoc && window._fbDeleteDoc) {
+    const docId = atama._fbId || atamaId;
+    window._fbDeleteDoc(window._fbDoc(window._firebaseDB, "atamalar", docId))
+      .catch(e => console.warn("[Firebase] Atama silinemedi:", e));
+  }
+
   denetimSayfasi();
 }
 function atamaRaporuGoster(denetimId) {
@@ -10579,7 +10601,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031311"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031312"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
