@@ -793,7 +793,10 @@ function aktifKullaniciyiGetir() {
 // ============================================================
 // KULLANICI VERİTABANI — dashboard.html içi (auth.js yüklenmeden önce)
 // ============================================================
-function kullaniclariGetir() {
+// Firebase'den kullanıcıları getir (sync cache + async firebase)
+let _kullaniciCache = null;
+
+async function kullaniclariGetirAsync() {
   const varsayilan = [{
     id:           "usr_admin",
     kullaniciAdi: "admin",
@@ -802,23 +805,78 @@ function kullaniclariGetir() {
     rol:          "admin",
     olusturma:    new Date().toISOString()
   }];
+
+  // Firebase varsa oradan getir
+  if (window._firebaseDB && window._fbGetDocs && window._fbCollection) {
+    try {
+      const snap = await window._fbGetDocs(window._fbCollection(window._firebaseDB, "kullanicilar"));
+      const liste = snap.docs.map(d => ({ ...d.data(), _fbId: d.id }));
+      if (liste.length === 0) {
+        // İlk kurulum — admin'i Firebase'e kaydet
+        await kullanicilariKaydetAsync(varsayilan);
+        _kullaniciCache = varsayilan;
+        return varsayilan;
+      }
+      // Admin yoksa ekle
+      if (!liste.find(k => k.id === "usr_admin")) liste.unshift(varsayilan[0]);
+      _kullaniciCache = liste;
+      return liste;
+    } catch(e) {
+      console.warn("[Firebase] Kullanıcılar okunamadı:", e);
+    }
+  }
+
+  // Fallback: localStorage
   try {
     const kayitli = localStorage.getItem("denetim_kullanicilar");
     if (!kayitli) {
       localStorage.setItem("denetim_kullanicilar", JSON.stringify(varsayilan));
+      _kullaniciCache = varsayilan;
       return varsayilan;
     }
     const liste = JSON.parse(kayitli);
-    if (!liste.find(k => k.id === "usr_admin")) {
-      liste.unshift(varsayilan[0]);
-      localStorage.setItem("denetim_kullanicilar", JSON.stringify(liste));
-    }
+    if (!liste.find(k => k.id === "usr_admin")) liste.unshift(varsayilan[0]);
+    _kullaniciCache = liste;
     return liste;
   } catch(e) { return varsayilan; }
 }
 
+function kullaniclariGetir() {
+  // Sync versiyon — cache'den döner, yoksa localStorage
+  if (_kullaniciCache) return _kullaniciCache;
+  try {
+    const kayitli = localStorage.getItem("denetim_kullanicilar");
+    return kayitli ? JSON.parse(kayitli) : [{
+      id: "usr_admin", kullaniciAdi: "admin", sifre: "9186410025UfuK", rol: "admin"
+    }];
+  } catch(e) { return []; }
+}
+
+async function kullanicilariKaydetAsync(liste) {
+  // localStorage'a da yaz (hızlı erişim için)
+  localStorage.setItem("denetim_kullanicilar", JSON.stringify(liste));
+  _kullaniciCache = liste;
+
+  // Firebase'e yaz
+  if (window._firebaseDB && window._fbSetDoc && window._fbDoc && window._fbCollection && window._fbAddDoc) {
+    try {
+      for (const k of liste) {
+        if (k._fbId) {
+          await window._fbSetDoc(window._fbDoc(window._firebaseDB, "kullanicilar", k._fbId), k);
+        } else {
+          const ref = await window._fbAddDoc(window._fbCollection(window._firebaseDB, "kullanicilar"), k);
+          k._fbId = ref.id;
+        }
+      }
+    } catch(e) { console.warn("[Firebase] Kullanıcı kaydedilemedi:", e); }
+  }
+}
+
 function kullanicilariKaydet(liste) {
   localStorage.setItem("denetim_kullanicilar", JSON.stringify(liste));
+  _kullaniciCache = liste;
+  // Arka planda Firebase'e de yaz
+  kullanicilariKaydetAsync(liste).catch(e => console.warn(e));
 }
 
 // ============================================================
@@ -895,7 +953,7 @@ function kvkkGoster() {
 // ============================================================
 // GİRİŞ
 // ============================================================
-function girisYap() {
+async function girisYap() {
   const kullaniciAdi = document.getElementById("kullaniciAdi").value.trim();
   const sifre        = document.getElementById("sifre").value;
   const rol          = document.getElementById("rol").value;
@@ -904,12 +962,20 @@ function girisYap() {
     alert("Lütfen tüm alanları doldurunuz."); return;
   }
 
-  const kullanicilar = kullaniclariGetir();
+  // Giriş butonu loading göster
+  const btn = document.querySelector("#girisEkrani button");
+  if (btn) { btn.textContent = "Giriş yapılıyor..."; btn.disabled = true; }
+
+  // Firebase'den güncel kullanıcı listesini getir
+  const kullanicilar = await kullaniclariGetirAsync();
+
   const bulunan = kullanicilar.find(k =>
     (k.kullaniciAdi === kullaniciAdi || k.email === kullaniciAdi) &&
     k.sifre === sifre &&
     k.rol   === rol
   );
+
+  if (btn) { btn.textContent = "Giriş Yap"; btn.disabled = false; }
 
   if (!bulunan) {
     alert("Kullanıcı adı, şifre veya rol hatalı."); return;
@@ -2001,14 +2067,45 @@ async function takvimSayfasi() {
 }
 
 // ============================================================
-// ATAMA SİSTEMİ — Veri Katmanı
+// ATAMA SİSTEMİ — Veri Katmanı (Firebase + localStorage)
 // ============================================================
+let _atamaCache = null;
+
 function atamalariGetir() {
+  if (_atamaCache) return _atamaCache;
   try { const h = localStorage.getItem("denetim_atamalar"); return h ? JSON.parse(h) : []; }
   catch(e) { return []; }
 }
+
+async function atamalariGetirAsync() {
+  if (window._firebaseDB && window._fbGetDocs && window._fbCollection) {
+    try {
+      const snap = await window._fbGetDocs(window._fbCollection(window._firebaseDB, "atamalar"));
+      const liste = snap.docs.map(d => ({ ...d.data(), _fbId: d.id }));
+      _atamaCache = liste;
+      localStorage.setItem("denetim_atamalar", JSON.stringify(liste));
+      return liste;
+    } catch(e) { console.warn("[Firebase] Atamalar okunamadı:", e); }
+  }
+  return atamalariGetir();
+}
+
 function atamalariKaydet(liste) {
   localStorage.setItem("denetim_atamalar", JSON.stringify(liste));
+  _atamaCache = liste;
+  // Firebase'e arka planda yaz
+  if (window._firebaseDB) {
+    liste.forEach(async (a) => {
+      try {
+        if (a._fbId) {
+          await window._fbSetDoc(window._fbDoc(window._firebaseDB, "atamalar", a._fbId), a);
+        } else {
+          const ref = await window._fbAddDoc(window._fbCollection(window._firebaseDB, "atamalar"), a);
+          a._fbId = ref.id;
+        }
+      } catch(e) { console.warn("[Firebase] Atama kaydedilemedi:", e); }
+    });
+  }
 }
 function atamaRozetGuncelle() {
   const aktif = aktifKullaniciyiGetir();
@@ -2709,6 +2806,19 @@ document.addEventListener("keydown", e => {
 // SAYFA YÜKLENINCE OTURUM KONTROLÜ
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
+  // Firebase hazır olunca kullanıcı ve atamaları önceden yükle
+  document.addEventListener("firebaseHazir", async () => {
+    await kullaniclariGetirAsync();
+    await atamalariGetirAsync();
+    console.log("[Sistem] Firebase verileri yüklendi ✓");
+  });
+
+  // Firebase zaten hazırsa hemen yükle
+  if (window._firebaseHazir) {
+    kullaniclariGetirAsync();
+    atamalariGetirAsync();
+  }
+
   const aktif = aktifKullaniciyiGetir();
   if (aktif) {
     // Aktif oturum varsa direkt dashboard'a yönlendir
