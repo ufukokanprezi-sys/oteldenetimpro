@@ -2219,7 +2219,19 @@ async function atamalarSayfasi() {
 // ============================================================
 function yeniAtamaModal() {
   const kullanicilar = kullaniclariGetir().filter(k => k.rol !== "admin");
-  const oteller = otelleriGetir();
+  
+  // Oteller modülündeki oteller + daha önce denetlenmiş otelleri birleştir
+  const kayitliOteller = otelleriGetir();
+  const denetimOtelleri = (() => {
+    try {
+      const kayitlar = JSON.parse(localStorage.getItem("denetim_kayitlar") || "[]");
+      const adlar = [...new Set(kayitlar.map(k => k.otelAdi).filter(Boolean))];
+      return adlar
+        .filter(ad => !kayitliOteller.find(o => o.ad === ad))
+        .map(ad => ({ id: "dn_" + ad, ad: ad, sehir: "" }));
+    } catch(e) { return []; }
+  })();
+  const oteller = [...kayitliOteller, ...denetimOtelleri];
 
   const modal = document.createElement("div");
   modal.id = "atamaModal";
@@ -2282,25 +2294,16 @@ function yeniAtamaModal() {
           <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">
             🏨 Otel Seç *
           </label>
-          ${oteller.length > 0
-            ? `<select id="atamaOtel"
-                style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
-                font-size:14px;outline:none;background:white;cursor:pointer"
-                onfocus="this.style.borderColor='#3b82f6'"
-                onblur="this.style.borderColor='#e2e8f0'"
-                onchange="otelSecildiGuncelle(this)">
-                <option value="">Otel seçiniz...</option>
-                ${oteller.map(o=>`<option value="${o.id}" data-ad="${o.ad}" data-sehir="${o.sehir||''}">${o.ad}${o.sehir?' — '+o.sehir:''}</option>`).join("")}
-              </select>`
-            : `<div>
-                <input type="text" id="atamaOtelManuel"
-                  placeholder="Otel adını yazın..." 
-                  style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
-                  font-size:14px;outline:none;box-sizing:border-box"
-                  onfocus="this.style.borderColor='#3b82f6'"
-                  onblur="this.style.borderColor='#e2e8f0'">
-                <div style="font-size:12px;color:#94a3b8;margin-top:4px">Oteller modülünden otel ekleyebilirsiniz.</div>
-              </div>`}
+          <select id="atamaOtel"
+              style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
+              font-size:14px;outline:none;background:white;cursor:pointer"
+              onfocus="this.style.borderColor='#3b82f6'"
+              onblur="this.style.borderColor='#e2e8f0'"
+              onchange="otelSecildiGuncelle(this)">
+              <option value="">Otel seçiniz...</option>
+              ${oteller.map(o=>`<option value="${o.id}" data-ad="${o.ad}" data-sehir="${o.sehir||''}">${o.ad}${o.sehir?' — '+o.sehir:''}</option>`).join("")}
+            </select>
+            ${oteller.length === 0 ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px">⚠️ Henüz otel eklenmemiş. Oteller modülünden ekleyebilirsiniz.</div>` : ""}
         </div>
 
         <!-- Tarihler -->
