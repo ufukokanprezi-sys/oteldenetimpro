@@ -1544,7 +1544,7 @@ function maddeHTMLOlustur(madde, bolumId) {
       </textarea>
 
       <!-- ✅ FOTOĞRAF ALANI — olumsuz maddelerde göster -->
-      <div id="fotoContainer_${maddeId}" style="display:none;margin-top:10px">
+      <div id="fotoContainer_${maddeId}" style="display:block;margin-top:10px">
         <div class="foto-yukle-alani">
           <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;font-weight:600">
             📸 Kanıt Fotoğrafı Ekle
@@ -1615,17 +1615,10 @@ window.puanSec = function(maddeId, puan, btn) {
   // Puan değerini sakla
   btn.closest(".denetim-madde").dataset.puan = puan;
 
-  // ✅ Puan düşükse fotoğraf alanını göster
+  // Fotoğraf alanı her zaman görünür
   const fotoContainer = document.getElementById(`fotoContainer_${maddeId}`);
   if (fotoContainer) {
-    if (puan < 75) {
-      fotoContainer.style.display = "block";
-      fotoContainer.style.animation = "fadeIn .3s ease";
-    } else {
-      fotoContainer.style.display = "none";
-      // Yüksek puan verilince fotoğrafları temizle
-      delete _fotografDepo[maddeId];
-    }
+    fotoContainer.style.display = "block";
   }
 };
 
