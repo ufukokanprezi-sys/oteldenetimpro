@@ -32,9 +32,6 @@
     <div class="bar-bg"><div class="bar"></div></div>
   </div>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js').catch(e => {});
-    }
     setTimeout(() => { window.location.replace('denetim-sistemi.html'); }, 1500);
   </script>
 </body>
