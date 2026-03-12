@@ -881,28 +881,7 @@ function kullanicilariKaydet(liste) {
 // ============================================================
 // DENETİM KAYITLARI — async wrapper (denetim.js ile uyumlu)
 // ============================================================
-async function denetimleriGetir() {
-  try {
-    // Önce denetim.js'in kendi fonksiyonunu dene
-    if (typeof window._denetimleriGetirAsync === "function") {
-      return await window._denetimleriGetirAsync();
-    }
-  } catch(e) { /* devam */ }
-  // Fallback: direkt localStorage
-  try {
-    const kayitli = localStorage.getItem("denetim_kayitlar");
-    return kayitli ? JSON.parse(kayitli) : [];
-  } catch(e) { return []; }
-}
-
-async function denetimleriKaydet(liste) {
-  try {
-    if (typeof window._denetimleriKaydetAsync === "function") {
-      return await window._denetimleriKaydetAsync(liste);
-    }
-  } catch(e) { /* devam */ }
-  localStorage.setItem("denetim_kayitlar", JSON.stringify(liste));
-}
+// denetimleriGetir ve denetimleriKaydet aşağıda tanımlı
 
 // ============================================================
 // YÜKLEME ANİMASYONU
@@ -1078,7 +1057,7 @@ function sayfaGit(sayfa, el) {
   if (sayfa === "oteller")      { otellerSayfasi();      return; }
   if (sayfa === "takvim")       { takvimSayfasi();       return; }
   if (sayfa === "atamalar")     { denetimSayfasi();      return; }
-  if (sayfa === "atamalarim")   { denetimSayfasi();      return; }
+  if (sayfa === "atamalarim")   { atamalarimSayfasi();   return; }
 
   document.getElementById("sayfaIcerik").innerHTML = `
     <div class="bos-durum">
@@ -2108,6 +2087,25 @@ function atamalariKaydet(liste) {
     });
   }
 }
+function atamaDurumGuncelle(atamaId, yeniDurum) {
+  const liste = atamalariGetir();
+  const atama = liste.find(a => a.id === atamaId);
+  if (!atama) { console.warn('Atama bulunamadı:', atamaId); return; }
+  atama.durum = yeniDurum;
+  atamalariKaydet(liste);
+  const aktif = aktifKullaniciyiGetir();
+  if (aktif && aktif.rol === 'admin') {
+    denetimSayfasi();
+  } else {
+    atamalarimSayfasi();
+  }
+  if (typeof _basariToast === 'function') _basariToast('✅ Durum güncellendi.');
+}
+
+function sayfayiGoster(sayfa) {
+  sayfaGit(sayfa, null);
+}
+
 function atamaRozetGuncelle() {
   const aktif = aktifKullaniciyiGetir();
   if (!aktif || aktif.rol === "admin") return;
@@ -2315,267 +2313,6 @@ async function atamalarSayfasi() {
 // ============================================================
 // YENİ ATAMA MODAL
 // ============================================================
-function yeniAtamaModal() {
-  const kullanicilar = kullaniclariGetir().filter(k => k.rol !== "admin");
-  
-  // Oteller modülündeki oteller + daha önce denetlenmiş otelleri birleştir
-  const kayitliOteller = otelleriGetir();
-  const denetimOtelleri = (() => {
-    try {
-      const kayitlar = JSON.parse(localStorage.getItem("denetim_kayitlar") || "[]");
-      const adlar = [...new Set(kayitlar.map(k => k.otelAdi).filter(Boolean))];
-      return adlar
-        .filter(ad => !kayitliOteller.find(o => o.ad === ad))
-        .map(ad => ({ id: "dn_" + ad, ad: ad, sehir: "" }));
-    } catch(e) { return []; }
-  })();
-  const oteller = [...kayitliOteller, ...denetimOtelleri];
-
-  const modal = document.createElement("div");
-  modal.id = "atamaModal";
-  modal.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:20px";
-
-  modal.innerHTML = `
-    <div style="background:white;border-radius:20px;width:100%;max-width:520px;
-         box-shadow:0 20px 60px rgba(0,0,0,0.25);max-height:90vh;overflow-y:auto">
-
-      <!-- Başlık -->
-      <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;
-           display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:white;z-index:1">
-        <div>
-          <div style="font-size:17px;font-weight:800;color:#1e293b">📌 Yeni Denetim Ataması</div>
-          <div style="font-size:12px;color:#94a3b8;margin-top:2px">Denetçiye otel denetimi ata</div>
-        </div>
-        <button onclick="document.getElementById('atamaModal').remove()"
-          style="width:30px;height:30px;border-radius:50%;background:#f1f5f9;border:none;font-size:15px;cursor:pointer;color:#64748b">✕</button>
-      </div>
-
-      <div style="padding:20px 24px;display:grid;gap:16px">
-
-        <!-- Denetçi Seç -->
-        <div>
-          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">
-            👤 Denetçi Seç *
-          </label>
-          <select id="atamaDenetciSelect"
-            style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
-            font-size:14px;outline:none;background:white;cursor:pointer"
-            onfocus="this.style.borderColor='#3b82f6'"
-            onblur="this.style.borderColor='#e2e8f0'">
-            <option value="">-- Denetçi Seçin --</option>
-            ${kullanicilar.map(k=>`
-              <option value="${k.id}" data-ad="${k.kullaniciAdi}">
-                🕵️ ${k.kullaniciAdi} (${k.email||''})
-              </option>`).join("")}
-          </select>
-          ${kullanicilar.length === 0 ? `<div style="font-size:12px;color:#ef4444;margin-top:4px">⚠️ Henüz kayıtlı denetçi bulunmuyor.</div>` : ""}
-        </div>
-
-        <!-- Otel Seç -->
-        <div>
-          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">
-            🏨 Otel Seç *
-          </label>
-          <select id="atamaOtel"
-              style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
-              font-size:14px;outline:none;background:white;cursor:pointer"
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#e2e8f0'"
-              onchange="otelSecildiGuncelle(this)">
-              <option value="">Otel seçiniz...</option>
-              ${oteller.map(o=>`<option value="${o.id}" data-ad="${o.ad}" data-sehir="${o.sehir||''}">${o.ad}${o.sehir?' — '+o.sehir:''}</option>`).join("")}
-            </select>
-            ${oteller.length === 0 ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px">⚠️ Henüz otel eklenmemiş. Oteller modülünden ekleyebilirsiniz.</div>` : ""}
-        </div>
-
-        <!-- Tarihler -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div>
-            <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">📅 Atama Tarihi</label>
-            <input type="date" id="atamaBasTarih"
-              value="${new Date().toISOString().split('T')[0]}"
-              style="width:100%;padding:11px 13px;border:2px solid #e2e8f0;border-radius:12px;
-              font-size:14px;outline:none;box-sizing:border-box;cursor:pointer"
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#e2e8f0'">
-          </div>
-          <div>
-            <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">⏰ Son Tarih</label>
-            <input type="date" id="atamaSonTarih"
-              style="width:100%;padding:11px 13px;border:2px solid #e2e8f0;border-radius:12px;
-              font-size:14px;outline:none;box-sizing:border-box;cursor:pointer"
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#e2e8f0'">
-          </div>
-        </div>
-
-        <!-- Öncelik -->
-        <div>
-          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">🎯 Öncelik</label>
-          <div style="display:flex;gap:8px">
-            ${[
-              { val:"normal",   label:"Normal",  renk:"#64748b", bg:"#f1f5f9" },
-              { val:"yuksek",   label:"Yüksek",  renk:"#f59e0b", bg:"#fffbeb" },
-              { val:"acil",     label:"Acil",    renk:"#ef4444", bg:"#fef2f2" },
-            ].map(p=>`
-              <label style="flex:1;text-align:center;padding:9px;border:2px solid #e2e8f0;
-                border-radius:10px;cursor:pointer;transition:all 0.15s;font-size:13px;font-weight:700;
-                color:${p.renk}" id="oncelikLbl_${p.val}">
-                <input type="radio" name="atamaOncelik" value="${p.val}" ${p.val==='normal'?'checked':''}
-                  style="display:none" onchange="oncelikSecUpdate('${p.val}','${p.renk}','${p.bg}')">
-                ${p.label}
-              </label>`).join("")}
-          </div>
-        </div>
-
-        <!-- Not -->
-        <div>
-          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:8px;color:#374151">📝 Atama Notu</label>
-          <textarea id="atamaNot" rows="3"
-            placeholder="Denetçiye özel talimat veya not ekleyebilirsiniz..."
-            style="width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
-            font-size:13px;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box"
-            onfocus="this.style.borderColor='#3b82f6'"
-            onblur="this.style.borderColor='#e2e8f0'"></textarea>
-        </div>
-
-        <div id="atamaHata" style="display:none;padding:11px 14px;background:#fef2f2;
-          border-radius:10px;font-size:13px;color:#ef4444;font-weight:600"></div>
-      </div>
-
-      <!-- Footer -->
-      <div style="padding:0 24px 20px;display:flex;gap:10px;justify-content:flex-end;
-           position:sticky;bottom:0;background:white;border-top:1px solid #f1f5f9;padding-top:16px">
-        <button onclick="document.getElementById('atamaModal').remove()"
-          style="padding:11px 20px;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">İptal</button>
-        <button onclick="atamaKaydet()"
-          style="padding:11px 24px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
-          color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">
-          📌 Atamayı Kaydet
-        </button>
-      </div>
-    </div>`;
-
-  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
-  document.body.appendChild(modal);
-
-  // Normal önceliği başta seçili göster
-  const lbl = document.getElementById("oncelikLbl_normal");
-  if (lbl) { lbl.style.borderColor = "#64748b"; lbl.style.background = "#f1f5f9"; }
-}
-
-function denetciSecUpdate(id) {
-  document.querySelectorAll("[id^='denetciKart_']").forEach(el => {
-    el.style.borderColor = "#e2e8f0"; el.style.background = "white";
-  });
-  const kart = document.getElementById("denetciKart_" + id);
-  if (kart) { kart.style.borderColor = "#3b82f6"; kart.style.background = "#eff6ff"; }
-}
-
-function otelSecildiGuncelle(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  // data-* bilgileri atamaKaydet'te kullanılacak
-}
-
-function oncelikSecUpdate(val, renk, bg) {
-  ["normal","yuksek","acil"].forEach(v => {
-    const el = document.getElementById("oncelikLbl_" + v);
-    if (!el) return;
-    el.style.borderColor = v === val ? renk : "#e2e8f0";
-    el.style.background  = v === val ? bg    : "white";
-  });
-}
-
-function atamaKaydet() {
-  const denetciSelect = document.getElementById("atamaDenetciSelect");
-  const denetciInput = denetciSelect ? { value: denetciSelect.value } : document.querySelector('input[name="atamaDenetci"]:checked');
-  const hataEl = document.getElementById("atamaHata");
-
-  if (!denetciInput || !denetciInput.value) {
-    hataEl.textContent = "Lütfen bir denetçi seçiniz.";
-    hataEl.style.display = "block"; return;
-  }
-
-  // Otel bilgisi
-  const otelSel   = document.getElementById("atamaOtel");
-  const otelManuel = document.getElementById("atamaOtelManuel");
-  let otelAdi  = "";
-  let otelId   = "";
-  let sehir    = "";
-
-  if (otelSel) {
-    const opt = otelSel.options[otelSel.selectedIndex];
-    otelAdi = opt?.dataset?.ad || otelSel.value;
-    otelId  = otelSel.value;
-    sehir   = opt?.dataset?.sehir || "";
-  } else if (otelManuel) {
-    otelAdi = otelManuel.value.trim();
-  }
-
-  if (!otelAdi || otelAdi === "Otel seçiniz...") {
-    hataEl.textContent = "Lütfen bir otel seçiniz veya yazınız.";
-    hataEl.style.display = "block"; return;
-  }
-
-  hataEl.style.display = "none";
-
-  const denetciId = denetciInput.value;
-  const kullanicilar = kullaniclariGetir();
-  const denetci = kullanicilar.find(k => k.id === denetciId);
-
-  // Tarihleri formatlı hale getir
-  const formatTarih = iso => {
-    if (!iso) return "";
-    const [y,m,d] = iso.split("-");
-    return `${d}.${m}.${y}`;
-  };
-
-  const oncelikInput = document.querySelector('input[name="atamaOncelik"]:checked');
-
-  const yeniAtama = {
-    id          : "atm_" + Date.now(),
-    denetciId   : denetciId,
-    denetciAd   : denetci?.kullaniciAdi || "—",
-    otelId      : otelId,
-    otelAdi     : otelAdi,
-    sehir       : sehir,
-    atamaTarihi : formatTarih(document.getElementById("atamaBasTarih")?.value || ""),
-    sonTarih    : formatTarih(document.getElementById("atamaSonTarih")?.value  || ""),
-    oncelik     : oncelikInput?.value || "normal",
-    not         : (document.getElementById("atamaNot")?.value || "").trim(),
-    durum       : "bekliyor",
-    olusturma   : new Date().toISOString(),
-    adminId     : aktifKullaniciyiGetir()?.id || "",
-  };
-
-  const liste = atamalariGetir();
-  liste.push(yeniAtama);
-  atamalariKaydet(liste);
-
-  document.getElementById("atamaModal")?.remove();
-  atamalarSayfasi();
-  _basariToast(`📌 "${denetci?.kullaniciAdi}" → "${otelAdi}" ataması yapıldı.`);
-}
-
-function atamaDurumGuncelle(atamaId, yeniDurum) {
-  const liste = atamalariGetir();
-  const idx = liste.findIndex(a => a.id === atamaId);
-  if (idx === -1) return;
-  const etiketler = { devamEden:"devam ediyor", tamamlandi:"tamamlandı", iptal:"iptal edildi" };
-  if (!confirm(`Atama durumu "${etiketler[yeniDurum]}" olarak güncellenecek. Onaylıyor musunuz?`)) return;
-  liste[idx].durum = yeniDurum;
-  if (yeniDurum === "tamamlandi") liste[idx].tamamlanmaTarihi = new Date().toLocaleDateString("tr-TR");
-  atamalariKaydet(liste);
-  atamalarSayfasi();
-  _basariToast("✅ Atama durumu güncellendi.");
-}
-
-function atamaSil(atamaId) {
-  if (!confirm("Bu atama kaydı silinecek. Emin misiniz?")) return;
-  atamalariKaydet(atamalariGetir().filter(a => a.id !== atamaId));
-  atamalarSayfasi();
-  _basariToast("🗑 Atama silindi.");
-}
 
 // ============================================================
 // DENETÇİ — ATAMALARIMSayfası
@@ -2584,7 +2321,8 @@ async function atamalarimSayfasi() {
   const aktif = aktifKullaniciyiGetir();
   if (!aktif) return;
 
-  const tumAtamalar = atamalariGetir();
+  // Firebase'den güncel atamaları çek
+  const tumAtamalar = await atamalariGetirAsync().catch(() => atamalariGetir());
   const benimAtamalar = tumAtamalar.filter(a => a.denetciId === aktif.id);
   const kayitlar = await denetimleriGetir();
 
@@ -6958,7 +6696,7 @@ function maddeHTMLOlustur(madde, bolumId) {
             📷
             <input type="file" accept="image/*" capture="environment"
               style="display:none"
-              onchange="fotografEkle(event,'${maddeId}','${madde.ad.replace(/'/g, &quot;&apos;&quot;)}')">
+              onchange="fotografEkle(event,'${maddeId}',this.dataset.ad)" data-ad="${madde.ad.replace(/'/g,'_')}">
           </label>
         </div>
       </div>
@@ -10841,7 +10579,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031308"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031311"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
