@@ -1,0 +1,58 @@
+{
+  "name"            : "Denetim Pro — Otel Denetim Sistemi",
+  "short_name"      : "Denetim Pro",
+  "description"     : "Otel gizli müşteri denetim ve raporlama sistemi",
+  "start_url"       : "./index.html",
+  "display"         : "standalone",
+  "orientation"     : "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color"     : "#3b82f6",
+  "lang"            : "tr",
+  "icons": [
+    {
+      "src"    : "icon-192.png",
+      "sizes"  : "192x192",
+      "type"   : "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src"    : "icon-512.png",
+      "sizes"  : "512x512",
+      "type"   : "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src"          : "screenshot-wide.png",
+      "sizes"        : "1280x720",
+      "type"         : "image/png",
+      "form_factor"  : "wide",
+      "label"        : "Dashboard Görünümü"
+    },
+    {
+      "src"          : "screenshot-mobile.png",
+      "sizes"        : "390x844",
+      "type"         : "image/png",
+      "form_factor"  : "narrow",
+      "label"        : "Mobil Görünüm"
+    }
+  ],
+  "categories"      : ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name"       : "Yeni Denetim",
+      "short_name" : "Denetim",
+      "description": "Hızlıca yeni denetim başlat",
+      "url"        : "./dashboard.html#yeni-denetim",
+      "icons"      : [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name"       : "Raporlar",
+      "short_name" : "Raporlar",
+      "description": "Denetim raporlarını görüntüle",
+      "url"        : "./dashboard.html#raporlar",
+      "icons"      : [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
