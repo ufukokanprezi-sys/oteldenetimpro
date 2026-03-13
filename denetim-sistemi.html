@@ -11104,6 +11104,24 @@ if (typeof basariToast === "undefined") {
   console.log = console.warn = console.error = function() {};
 })();
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
 
+document.querySelectorAll("[onclick]").forEach(function(el){
+
+el.addEventListener("click", function(e){
+
+const code = this.getAttribute("onclick");
+
+if(code){
+eval(code);
+}
+
+});
+
+});
+
+});
+</script>
 </body>
 </html>
