@@ -785,38 +785,16 @@ const Sifrele = {
 // ============================================================
 function aktifKullaniciyiGetir() {
   try {
-    // Önce sessionStorage'a bak, yoksa localStorage'dan kurtarma yap
     const veriS = sessionStorage.getItem("aktifKullanici");
     if (veriS) return JSON.parse(veriS);
+    // Fallback: localStorage (kurtarma girişi veya sayfa yenilemede)
     const veriL = localStorage.getItem("aktifKullanici");
     if (veriL) {
-      // localStorage'da varsa sessionStorage'a da yaz (sync)
       sessionStorage.setItem("aktifKullanici", veriL);
       return JSON.parse(veriL);
     }
     return null;
   } catch(e) { return null; }
-}
-
-// ============================================================
-// MENÜ GÖRÜNÜRLÜK YARDIMCISI — Tüm rol bazlı menü ayarları
-// ============================================================
-function menuGorunurlukAyarla(adminMi) {
-  const ids = ["menuKullanicilar","menuOteller","menuBirimler","menuAtamalar"];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = adminMi ? "flex" : "none";
-  });
-  const elYeniDenetim  = document.getElementById("menuYeniDenetim");
-  const elAtamalarim   = document.getElementById("menuAtamalarim");
-  const btnYeniDenetim = document.getElementById("btnYeniDenetim");
-  const btnGorevlerim  = document.getElementById("btnGorevlerim");
-  const btnSifre       = document.getElementById("btnSifreDegistir");
-  if (elYeniDenetim)  elYeniDenetim.style.display  = adminMi ? "flex"        : "none";
-  if (elAtamalarim)   elAtamalarim.style.display   = adminMi ? "none"        : "flex";
-  if (btnYeniDenetim) btnYeniDenetim.style.display = adminMi ? "inline-flex" : "none";
-  if (btnGorevlerim)  btnGorevlerim.style.display  = adminMi ? "none"        : "inline-flex";
-  if (btnSifre)       btnSifre.style.display       = adminMi ? "inline-flex" : "none";
 }
 
 // ============================================================
@@ -983,10 +961,25 @@ async function girisYap() {
     };
     localStorage.setItem("aktifKullanici", JSON.stringify(kurtarmaKullanici));
     sessionStorage.setItem("aktifKullanici", JSON.stringify(kurtarmaKullanici));
+    // Sidebar güncelle
     document.getElementById("sidebarKullanici").textContent = "KURTARMA";
     document.getElementById("sidebarRol").textContent       = "👑 Admin";
     document.getElementById("sidebarAvatar").textContent    = "👑";
-    menuGorunurlukAyarla(true);
+    // Admin menülerini göster
+    ["menuKullanicilar","menuOteller","menuBirimler","menuAtamalar"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "flex";
+    });
+    const elYeniDenetim  = document.getElementById("menuYeniDenetim");
+    const elAtamalarim   = document.getElementById("menuAtamalarim");
+    const btnYeniDenetim = document.getElementById("btnYeniDenetim");
+    const btnGorevlerim  = document.getElementById("btnGorevlerim");
+    const btnSifre       = document.getElementById("btnSifreDegistir");
+    if (elYeniDenetim)  elYeniDenetim.style.display  = "flex";
+    if (elAtamalarim)   elAtamalarim.style.display   = "none";
+    if (btnYeniDenetim) btnYeniDenetim.style.display = "inline-flex";
+    if (btnGorevlerim)  btnGorevlerim.style.display  = "none";
+    if (btnSifre)       btnSifre.style.display       = "inline-flex";
     document.getElementById("girisEkrani").style.display = "none";
     document.getElementById("anaEkran").style.display    = "block";
     dashboardYukle();
@@ -1017,7 +1010,7 @@ async function girisYap() {
     alert("Kullanıcı adı, şifre veya rol hatalı."); return;
   }
 
-  // ✅ Session'a ve localStorage'a kaydet (sayfa yenilenmesinde oturum koruması)
+  // ✅ Session'a ve localStorage'a kaydet (fallback için)
   sessionStorage.setItem("aktifKullanici", JSON.stringify(bulunan));
   localStorage.setItem("aktifKullanici", JSON.stringify(bulunan));
 
@@ -1028,7 +1021,23 @@ async function girisYap() {
   document.getElementById("sidebarAvatar").textContent    = adminMi ? "👑" : "🕵️";
 
   // ✅ Rol bazlı menü görünürlüğü
-  menuGorunurlukAyarla(adminMi);
+  ["menuKullanicilar","menuOteller","menuBirimler","menuAtamalar"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = adminMi ? "flex" : "none";
+  });
+  // Denetçiye: Atamalarım menüsü; Admin'e: Yeni Denetim butonu + menüsü
+  const elYeniDenetim = document.getElementById("menuYeniDenetim");
+  const elAtamalarim  = document.getElementById("menuAtamalarim");
+  const btnYeniDenetim = document.getElementById("btnYeniDenetim");
+  const btnGorevlerim  = document.getElementById("btnGorevlerim");
+  if (elYeniDenetim)  elYeniDenetim.style.display  = adminMi ? "flex" : "none";
+  if (elAtamalarim)   elAtamalarim.style.display   = adminMi ? "none" : "flex";
+  if (btnYeniDenetim) btnYeniDenetim.style.display = adminMi ? "inline-flex" : "none";
+  if (btnGorevlerim)  btnGorevlerim.style.display  = adminMi ? "none" : "inline-flex";
+
+  // ✅ Şifre değiştir butonu sadece admin'e
+  document.getElementById("btnSifreDegistir").style.display =
+    adminMi ? "inline-flex" : "none";
 
   document.getElementById("girisEkrani").style.display = "none";
   document.getElementById("anaEkran").style.display    = "block";
@@ -1513,7 +1522,6 @@ function sifreDegistir() {
     kullanicilariKaydet(kullanicilar);
     aktif.sifre = yeni;
     sessionStorage.setItem("aktifKullanici", JSON.stringify(aktif));
-    localStorage.setItem("aktifKullanici", JSON.stringify(aktif));
     alert("✅ Şifreniz başarıyla güncellendi.");
     document.getElementById("eskiSifre").value      = "";
     document.getElementById("yeniSifreInput").value = "";
@@ -2604,7 +2612,21 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("sidebarRol").textContent       = adminMi ? "👑 Admin" : "🕵️ Gizli Müşteri";
     document.getElementById("sidebarAvatar").textContent    = adminMi ? "👑" : "🕵️";
 
-    menuGorunurlukAyarla(adminMi);
+    ["menuKullanicilar","menuOteller","menuBirimler","menuAtamalar"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = adminMi ? "flex" : "none";
+    });
+    const elYeniDenetim2 = document.getElementById("menuYeniDenetim");
+    const elAtamalarim2  = document.getElementById("menuAtamalarim");
+    const btnYeniDenetim2 = document.getElementById("btnYeniDenetim");
+    const btnGorevlerim2  = document.getElementById("btnGorevlerim");
+    if (elYeniDenetim2)   elYeniDenetim2.style.display  = adminMi ? "flex" : "none";
+    if (elAtamalarim2)    elAtamalarim2.style.display   = adminMi ? "none" : "flex";
+    if (btnYeniDenetim2)  btnYeniDenetim2.style.display = adminMi ? "inline-flex" : "none";
+    if (btnGorevlerim2)   btnGorevlerim2.style.display  = adminMi ? "none" : "inline-flex";
+
+    document.getElementById("btnSifreDegistir").style.display =
+      adminMi ? "inline-flex" : "none";
 
     document.getElementById("yuklemeEkrani").style.display = "none";
     document.getElementById("girisEkrani").style.display   = "none";
@@ -11074,7 +11096,7 @@ if (typeof basariToast === "undefined") {
     }
   });
 
-  // DevTools boyut tespiti devre dışı — yanlış pozitif veriyor, tıklamaları engelliyor
+  // DevTools boyut tespiti kaldırıldı — normal kullanımda false positive üretiyordu (pointerEvents engeli)
 
   // Metin seçimini engelle (opsiyonel — kaldırılabilir)
   // document.onselectstart = () => false;
