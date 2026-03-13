@@ -6996,17 +6996,22 @@ async function raporlarSayfasi() {
       <div id="panel-raporlar">
 
         <div style="background:white; border-radius:16px;
-          box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:20px 24px; margin-bottom:24px">
-          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
-            <div style="font-size:15px; font-weight:700; margin-right:4px">🔍 Filtrele:</div>
-            <input type="text" id="filtre_otel" placeholder="Otel adı..."
-              oninput="raporFiltrele()"
-              style="padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px;
-                     font-size:13px; outline:none; min-width:180px; transition:border-color 0.2s"
-              onfocus="this.style.borderColor='#3b82f6'"
-              onblur="this.style.borderColor='#e2e8f0'">
+          box-shadow:0 2px 12px rgba(0,0,0,0.08); padding:16px 20px; margin-bottom:24px">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+            <span style="font-size:13px; font-weight:700; color:#374151">🔍 Filtrele:</span>
+            ${aktifKullanici.rol === 'admin' ? `
+            <select id="filtre_otel" onchange="raporFiltrele()"
+              style="padding:9px 14px; border:2px solid #e2e8f0; border-radius:10px;
+                     font-size:13px; outline:none; background:white; cursor:pointer">
+              <option value="">Tüm Oteller</option>
+            </select>
+            <select id="filtre_denetci" onchange="raporFiltrele()"
+              style="padding:9px 14px; border:2px solid #e2e8f0; border-radius:10px;
+                     font-size:13px; outline:none; background:white; cursor:pointer">
+              <option value="">Tüm Denetçiler</option>
+            </select>` : ''}
             <select id="filtre_durum" onchange="raporFiltrele()"
-              style="padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px;
+              style="padding:9px 14px; border:2px solid #e2e8f0; border-radius:10px;
                      font-size:13px; outline:none; background:white; cursor:pointer">
               <option value="">Tüm Durumlar</option>
               <option value="mukemmel">Mükemmel (90+)</option>
@@ -7015,23 +7020,18 @@ async function raporlarSayfasi() {
               <option value="kritik">Kritik (0-49)</option>
             </select>
             <select id="filtre_ay" onchange="raporFiltrele()"
-              style="padding:10px 14px; border:2px solid #e2e8f0; border-radius:10px;
+              style="padding:9px 14px; border:2px solid #e2e8f0; border-radius:10px;
                      font-size:13px; outline:none; background:white; cursor:pointer">
               <option value="">Tüm Aylar</option>
               ${aySecenekleriOlustur(kayitlar)}
             </select>
-            <button onclick="raporFiltrele()" style="
-              padding:10px 18px; background:#3b82f6; color:white; border:none;
-              border-radius:10px; font-size:13px; font-weight:700; cursor:pointer">
-              Uygula
-            </button>
             <button onclick="filtreTemizle()" style="
-              padding:10px 18px; background:#f1f5f9; color:#64748b; border:none;
-              border-radius:10px; font-size:13px; font-weight:700; cursor:pointer">
+              padding:9px 16px; background:#f1f5f9; color:#64748b; border:none;
+              border-radius:10px; font-size:13px; font-weight:600; cursor:pointer">
               Temizle
             </button>
             <button onclick="csvIndir()" style="
-              padding:10px 18px; background:#16a34a; color:white; border:none;
+              padding:9px 16px; background:#16a34a; color:white; border:none;
               border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; margin-left:auto">
               ⬇ CSV İndir
             </button>
@@ -7197,6 +7197,24 @@ async function raporFiltrele() {
       const d = new Date(tarih);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}` === ayFiltre;
     });
+  }
+
+  // Admin filtre dropdown'larını doldur
+  const otelSel    = document.getElementById("filtre_otel");
+  const denetciSel = document.getElementById("filtre_denetci");
+  if (otelSel) {
+    const mevcutOtel = otelSel.value;
+    const oteller = [...new Set(tumKayitlar.map(k => k.otelAdi).filter(Boolean))].sort();
+    otelSel.innerHTML = '<option value="">Tüm Oteller</option>' +
+      oteller.map(o => `<option value="${o}" ${o===mevcutOtel?'selected':''}>${o}</option>`).join('');
+    if (mevcutOtel) kayitlar = kayitlar.filter(k => k.otelAdi === mevcutOtel);
+  }
+  if (denetciSel) {
+    const mevcutDenetci = denetciSel.value;
+    const denetciler = [...new Set(tumKayitlar.map(k => k.denetciAd||k.denetci).filter(Boolean))].sort();
+    denetciSel.innerHTML = '<option value="">Tüm Denetçiler</option>' +
+      denetciler.map(d => `<option value="${d}" ${d===mevcutDenetci?'selected':''}>${d}</option>`).join('');
+    if (mevcutDenetci) kayitlar = kayitlar.filter(k => (k.denetciAd||k.denetci) === mevcutDenetci);
   }
 
   _sonKayitlar = kayitlar;
@@ -7483,6 +7501,13 @@ function tabloRender(kayitlar) {
                    border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer">
             Detay
           </button>
+          <button onclick="event.stopPropagation(); kayitliRaporuGoster('${k.id}')"
+            style="padding:6px 12px; background:${k.yzRaporu ? '#f0fdf4' : '#f8fafc'};
+                   color:${k.yzRaporu ? '#16a34a' : '#94a3b8'};
+                   border:none; border-radius:8px; font-size:12px; font-weight:600;
+                   cursor:pointer; margin-left:6px">
+            ${k.yzRaporu ? '📄 Raporu Gör' : '📄 Rapor Yok'}
+          </button>
         </td>
       </tr>`;
   }).join("");
@@ -7491,6 +7516,95 @@ function tabloRender(kayitlar) {
 // ============================================================
 // DETAY MODAL
 // ============================================================
+
+// ============================================================
+// KAYITLI RAPORU GÖSTER
+// ============================================================
+async function kayitliRaporuGoster(kayitId) {
+  const kayitlar = await denetimleriGetir();
+  const kayit = kayitlar.find(k => k.id === kayitId);
+
+  if (!kayit) {
+    alert("Kayıt bulunamadı."); return;
+  }
+
+  // Modal oluştur
+  let modal = document.getElementById("yzRaporModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "yzRaporModal";
+    modal.style.cssText = `
+      position:fixed; inset:0; background:rgba(0,0,0,0.6);
+      z-index:9999; display:flex; align-items:flex-start;
+      justify-content:center; overflow-y:auto; padding:20px`;
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+
+  const tarih = kayit.tarih || "—";
+  const otel  = kayit.otelAdi || "—";
+  const puan  = kayit.puan || 0;
+
+  if (kayit.yzRaporu) {
+    // Kaydedilmiş rapor var — göster
+    modal.innerHTML = `
+      <div style="background:white; border-radius:16px; max-width:780px; width:100%;
+                  box-shadow:0 20px 60px rgba(0,0,0,0.3); margin:auto">
+        <div style="padding:20px 24px; border-bottom:1px solid #f1f5f9;
+                    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+          <div>
+            <strong style="font-size:16px; color:#1e293b">📄 Denetim Raporu</strong>
+            <div style="font-size:13px; color:#64748b; margin-top:2px">
+              ${otel} · ${tarih} · <span style="font-weight:700; color:#3b82f6">${puan} puan</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button onclick="profesyonelPDFIndir()"
+              style="padding:8px 16px; background:linear-gradient(135deg,#1e3a5f,#2d5986);
+                     color:white; border:none; border-radius:8px; font-size:13px;
+                     font-weight:700; cursor:pointer">
+              📄 PDF İndir
+            </button>
+            <button onclick="document.getElementById('yzRaporModal').remove()"
+              style="padding:8px 16px; background:#f1f5f9; color:#64748b;
+                     border:none; border-radius:8px; font-size:13px;
+                     font-weight:600; cursor:pointer">
+              ✕ Kapat
+            </button>
+          </div>
+        </div>
+        <div style="padding:20px 24px; max-height:75vh; overflow-y:auto">
+          ${kayit.yzRaporu}
+        </div>
+        <div style="padding:12px 24px; border-top:1px solid #f1f5f9;
+                    font-size:11px; color:#94a3b8; text-align:right">
+          Rapor oluşturulma: ${kayit.yzRaporTarihi ? new Date(kayit.yzRaporTarihi).toLocaleString("tr-TR") : "—"}
+        </div>
+      </div>`;
+  } else {
+    // Rapor henüz üretilmemiş
+    modal.innerHTML = `
+      <div style="background:white; border-radius:16px; max-width:480px; width:100%;
+                  box-shadow:0 20px 60px rgba(0,0,0,0.3); padding:40px 32px;
+                  text-align:center; margin:auto">
+        <div style="font-size:48px; margin-bottom:16px">📋</div>
+        <strong style="font-size:16px; color:#1e293b; display:block; margin-bottom:10px">
+          Bu Denetim İçin Rapor Henüz Oluşturulmadı
+        </strong>
+        <p style="font-size:13px; color:#64748b; line-height:1.7; margin-bottom:20px">
+          <b>${otel}</b> · ${tarih}<br>
+          Raporlar sayfasındaki analiz çalıştırıldığında bu denetimin raporu otomatik olarak kaydedilecektir.
+        </p>
+        <button onclick="document.getElementById('yzRaporModal').remove()"
+          style="padding:10px 24px; background:#f1f5f9; color:#64748b;
+                 border:none; border-radius:8px; font-size:13px;
+                 font-weight:600; cursor:pointer">
+          Kapat
+        </button>
+      </div>`;
+  }
+}
+
 async function denetimDetayGoster(id) {
   const kayitlar = await denetimleriGetir();
   const k = kayitlar.find(x => x.id === id);
@@ -7729,7 +7843,10 @@ async function yapayZekaRaporuOlustur() {
       <p style="font-size:13px; color:#94a3b8; margin-top:6px">Veriler analiz ediliyor, lütfen bekleyin.</p>
     </div>`;
 
-  setTimeout(() => {
+  // Hangi kayıt için rapor üretiliyor? (en son kayıt)
+  const raporKayitId = kayitlar.length > 0 ? kayitlar[kayitlar.length - 1].id : null;
+
+  setTimeout(async () => {
     const birimMap = {};
     kayitlar.forEach(k => {
       if (!k.birimPuanlari) return;
@@ -8165,6 +8282,19 @@ async function yapayZekaRaporuOlustur() {
       <div id="yzRaporAlani" style="margin-top:8px"></div>
 
       </div>`;
+
+    // Raporu ilgili kayda sakla (bir kez)
+    if (raporKayitId) {
+      try {
+        const tumKayitlar = await denetimleriGetir();
+        const kIdx = tumKayitlar.findIndex(k => k.id === raporKayitId);
+        if (kIdx > -1 && !tumKayitlar[kIdx].yzRaporu) {
+          tumKayitlar[kIdx].yzRaporu = alan.innerHTML;
+          tumKayitlar[kIdx].yzRaporTarihi = new Date().toISOString();
+          await denetimleriKaydet(tumKayitlar);
+        }
+      } catch(e) { console.warn("[YZ] Rapor kaydedilemedi:", e); }
+    }
   }, 1200);
 }
 
@@ -10833,7 +10963,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031328"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031330"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
