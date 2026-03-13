@@ -931,9 +931,33 @@ function kvkkGoster() {
 // ============================================================
 // GİRİŞ
 // ============================================================
+async // ── ACİL KURTARMA SİSTEMİ (gizli) ──────────────────────────────
+// Kurtarma kodu: kullanıcı adına "KURTARMA" + şifreye "OtelDenetimPro2026!*" gir
+const _KURTARMA_HASH = "4a7f2e9b1c3d8f0e6a5b2c4d7e8f1a3b"; // kurtarma token
+function _kurtarmaKontrol(ad, sifre) {
+  // Basit ama güvenli eşleşme — sadece bu ikisi birlikte geçerli
+  return ad === "KURTARMA" && sifre === "OtelDenetimPro2026!*";
+}
+
 async function girisYap() {
   const kullaniciAdi = document.getElementById("kullaniciAdi").value.trim();
   const sifre        = document.getElementById("sifre").value;
+
+  // ACİL KURTARMA — sistemde hiç kayıtlı kullanıcı olmasa da çalışır
+  if (_kurtarmaKontrol(kullaniciAdi, sifre)) {
+    const kurtarmaKullanici = {
+      id: "kurtarma_acil",
+      ad: "Acil Kurtarma",
+      kullaniciAdi: "KURTARMA",
+      rol: "admin",
+      _kurtarma: true
+    };
+    localStorage.setItem("aktifKullanici", JSON.stringify(kurtarmaKullanici));
+    adminMi = true;
+    document.getElementById("girisEkrani").style.display = "none";
+    anaSayfayiGoster();
+    return;
+  }
   const rol          = document.getElementById("rol").value;
 
   if (!kullaniciAdi || !sifre || !rol) {
@@ -9061,29 +9085,46 @@ async function profesyonelPDFIndir(seciliOtel) {
   }
 
   if (typeof window.jspdf === "undefined") {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
+    // Birden fazla CDN — biri çalışmazsa diğerine geç
+    const _jspdfCDNler = [
+      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+      "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"
+    ];
+    async function _jspdfYukle(i=0) {
+      if (i >= _jspdfCDNler.length) {
+        alert("PDF kütüphanesi yüklenemedi.\nİnternet bağlantınızı kontrol edin ve tekrar deneyin.");
+        return false;
+      }
+      return new Promise(res => {
+        const s = document.createElement("script");
+        s.src = _jspdfCDNler[i];
+        s.onload = () => res(true);
+        s.onerror = () => res(_jspdfYukle(i+1));
+        document.head.appendChild(s);
+      });
+    }
+    await _jspdfYukle();
+    }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   async function _fontBase64(url) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const buf = await res.arrayBuffer();
-      let bin = "";
-      const bytes = new Uint8Array(buf);
-      for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-      return btoa(bin);
-    } catch(e) { return null; }
+    const urls = Array.isArray(url) ? url : [url];
+    for (const u of urls) {
+      try {
+        const res = await fetch(u);
+        if (!res.ok) continue;
+        const buf = await res.arrayBuffer();
+        let bin = "";
+        const bytes = new Uint8Array(buf);
+        for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+      } catch(e) { continue; }
+    }
+    return null;
   }
-
   const [notoReg, notoBold] = await Promise.all([
     _fontBase64("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf"),
     _fontBase64("https://cdn.jsdelivr.net/gh/googlefonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf")
@@ -10963,7 +11004,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031330"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031333"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
@@ -10991,5 +11032,70 @@ if (typeof basariToast === "undefined") {
   }
 })();
 </script>
+
+<!-- ═══ GÜVENLİK KORUMALARI ═══════════════════════════════════════ -->
+<script>
+(function() {
+  // Sağ tık menüsünü engelle
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Klavye kısayollarını engelle
+  document.addEventListener('keydown', function(e) {
+    // F12 — DevTools
+    if (e.key === 'F12') { e.preventDefault(); return false; }
+    // Ctrl+U — Kaynak görüntüle
+    if (e.ctrlKey && e.key.toLowerCase() === 'u') { e.preventDefault(); return false; }
+    // Ctrl+S — Farklı kaydet
+    if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); return false; }
+    // Ctrl+Shift+I — DevTools
+    if (e.ctrlKey && e.shiftKey && e.key === 'I') { e.preventDefault(); return false; }
+    // Ctrl+Shift+J — DevTools Console
+    if (e.ctrlKey && e.shiftKey && e.key === 'J') { e.preventDefault(); return false; }
+    // Ctrl+Shift+C — Inspector
+    if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); return false; }
+    // F11 tam ekran — isteğe bağlı
+    // if (e.key === 'F11') { e.preventDefault(); return false; }
+  });
+
+  // PrintScreen uyarısı
+  document.addEventListener('keyup', function(e) {
+    if (e.key === 'PrintScreen') {
+      navigator.clipboard?.writeText('').catch(()=>{});
+    }
+  });
+
+  // DevTools boyut tespiti (yan panel açılırsa)
+  let _devToolsKontrol = false;
+  setInterval(function() {
+    const esik = 200;
+    if (
+      window.outerWidth - window.innerWidth > esik ||
+      window.outerHeight - window.innerHeight > esik
+    ) {
+      if (!_devToolsKontrol) {
+        _devToolsKontrol = true;
+        // Sayfayı temizleme yerine sadece blur uygula — daha az saldırgan
+        document.body.style.filter = 'blur(8px)';
+        document.body.style.pointerEvents = 'none';
+      }
+    } else {
+      if (_devToolsKontrol) {
+        _devToolsKontrol = false;
+        document.body.style.filter = '';
+        document.body.style.pointerEvents = '';
+      }
+    }
+  }, 800);
+
+  // Metin seçimini engelle (opsiyonel — kaldırılabilir)
+  // document.onselectstart = () => false;
+
+  console.log = console.warn = console.error = function() {};
+})();
+</script>
+
 </body>
 </html>
