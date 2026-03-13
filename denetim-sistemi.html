@@ -11125,3 +11125,20 @@ eval(code);
 </script>
 </body>
 </html>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+document.querySelectorAll("[onclick]").forEach(function(el){
+
+let kod = el.getAttribute("onclick");
+
+el.removeAttribute("onclick");
+
+el.addEventListener("click", function(){
+eval(kod);
+});
+
+});
+
+});
+</script>
