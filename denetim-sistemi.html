@@ -1370,6 +1370,7 @@ async function kullaniciEkle() {
 
   kullanicilar.push(yeni);
   kullanicilariKaydet(kullanicilar);
+  kullanicilariKaydetAsync(kullanicilar); // Firebase'e de kaydet
   alert(`✅ Kullanıcı eklendi!\nKullanıcı adı: ${yeni.kullaniciAdi}\nRol: ${rol === "admin" ? "Admin" : "Gizli Müşteri"}`);
   kullaniciListesiGoster();
 }
@@ -6217,6 +6218,12 @@ function birimDenetimGoster(index) {
                 width:10px; height:10px; border-radius:50%;
                 background:${mevcutPuan ? getRenkKod(mevcutPuan) : '#e2e8f0'};
                 flex-shrink:0; transition:background 0.3s"></div>
+              <label style="cursor:pointer; font-size:18px; line-height:1" title="Fotoğraf ekle">
+                📷
+                <input type="file" accept="image/*" capture="environment"
+                  style="display:none" data-ad="${soru.id}"
+                  onchange="fotografEkle(this,'${soru.id}')">
+              </label>
             </div>
           </div>`;
       }).join("");
@@ -6453,8 +6460,16 @@ function birimKaydetGec(index, yon) {
     cevaplar[bolum.bolumNo] = bolumCevap;
   });
   _aktifDenetim.cevaplar[birimId] = cevaplar;
-  if (yon === 'ileri') birimDenetimGoster(index + 1);
-  else birimDenetimGoster(index - 1);
+  if (yon === 'ileri') {
+    const sonrakiIndex = index + 1;
+    if (sonrakiIndex >= _aktifDenetim.secilenBirimler.length) {
+      denetimTamamla();
+    } else {
+      birimDenetimGoster(sonrakiIndex);
+    }
+  } else {
+    birimDenetimGoster(index - 1);
+  }
 }
 
 // ============================================================
@@ -10599,7 +10614,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031314"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031316"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
