@@ -11074,28 +11074,7 @@ if (typeof basariToast === "undefined") {
     }
   });
 
-  // DevTools boyut tespiti (yan panel açılırsa)
-  let _devToolsKontrol = false;
-  setInterval(function() {
-    const esik = 200;
-    if (
-      window.outerWidth - window.innerWidth > esik ||
-      window.outerHeight - window.innerHeight > esik
-    ) {
-      if (!_devToolsKontrol) {
-        _devToolsKontrol = true;
-        // Sayfayı temizleme yerine sadece blur uygula — daha az saldırgan
-        document.body.style.filter = 'blur(8px)';
-        document.body.style.pointerEvents = 'none';
-      }
-    } else {
-      if (_devToolsKontrol) {
-        _devToolsKontrol = false;
-        document.body.style.filter = '';
-        document.body.style.pointerEvents = '';
-      }
-    }
-  }, 800);
+  // DevTools boyut tespiti devre dışı — yanlış pozitif veriyor, tıklamaları engelliyor
 
   // Metin seçimini engelle (opsiyonel — kaldırılabilir)
   // document.onselectstart = () => false;
