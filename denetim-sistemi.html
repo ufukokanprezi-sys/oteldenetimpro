@@ -6222,7 +6222,7 @@ function birimDenetimGoster(index) {
                 📷
                 <input type="file" accept="image/*" capture="environment"
                   style="display:none" data-ad="${soru.id}"
-                  onchange="fotografEkle(this,'${soru.id}')">
+                  onchange="fotografEkle(event,'${soru.id}','${soru.metin.substring(0,30).replace(/'/g,'_')}')">
               </label>
             </div>
           </div>`;
@@ -6990,8 +6990,7 @@ async function raporlarSayfasi() {
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px">
         <button class="rapor-sekme-btn aktif" id="sekme-raporlar"
                 onclick="raporSekmeGec('raporlar')">📊 Raporlar</button>
-        <button class="rapor-sekme-btn" id="sekme-yapayZeka"
-                onclick="raporSekmeGec('yapayZeka')">🤖 Yapay Zeka Raporu</button>
+
       </div>
 
       <div id="panel-raporlar">
@@ -7129,53 +7128,7 @@ async function raporlarSayfasi() {
 
       </div>
 
-      <div id="panel-yapayZeka" style="display:none">
-
-        <div style="background:linear-gradient(135deg,#1e3a5f,#2d5986);
-                    border-radius:14px; padding:24px; margin-bottom:20px; color:white">
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px">
-            <span style="font-size:28px">🤖</span>
-            <div>
-              <strong style="font-size:16px; display:block">Yapay Zeka Destekli Kapanış Raporu</strong>
-              <span style="font-size:12px; opacity:0.7">${kayitlar.length} denetim kaydı analiz edilecek</span>
-            </div>
-          </div>
-          <p style="font-size:13px; opacity:0.8; line-height:1.7">
-            Tüm denetim verileri analiz edilerek her birim için detaylı değerlendirme,
-            güçlü/zayıf yönler ve aksiyon planı oluşturulacaktır.
-          </p>
-        </div>
-
-        <div style="background:white; border-radius:14px; padding:20px;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:16px">
-          <h3 style="font-size:14px; font-weight:700; margin-bottom:14px; color:#4a5568">
-            ⚙️ Rapor Seçenekleri
-          </h3>
-          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px">
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer">
-              <input type="checkbox" id="opt-birim" checked style="accent-color:#3b82f6"> Birim Bazlı Analiz
-            </label>
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer">
-              <input type="checkbox" id="opt-trend" checked style="accent-color:#3b82f6"> Trend Analizi
-            </label>
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer">
-              <input type="checkbox" id="opt-aksiyon" checked style="accent-color:#3b82f6"> Aksiyon Planı
-            </label>
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer">
-              <input type="checkbox" id="opt-oneri" checked style="accent-color:#3b82f6"> Stratejik Öneriler
-            </label>
-          </div>
-          <button onclick="yapayZekaRaporuOlustur()"
-            style="padding:13px 28px; background:linear-gradient(135deg,#3b82f6,#1d4ed8);
-                   color:white; border:none; border-radius:10px; font-size:14px;
-                   font-weight:700; cursor:pointer"
-            onmouseover="this.style.transform='translateY(-1px)'"
-            onmouseout="this.style.transform='none'">
-            🤖 Raporu Oluştur
-          </button>
-        </div>
-
-        <div id="yzRaporAlani"></div>
+      
 
       </div>
 
@@ -7199,18 +7152,10 @@ async function raporlarSayfasi() {
     </style>`;
 
   raporFiltrele();
-}
 
-// ============================================================
-// SEKME GEÇİŞİ
-// ============================================================
-function raporSekmeGec(sekme) {
-  ["raporlar","yapayZeka"].forEach(s => {
-    const panel = document.getElementById("panel-" + s);
-    const btn   = document.getElementById("sekme-" + s);
-    if (panel) panel.style.display = s === sekme ? "block" : "none";
-    if (btn)   btn.classList.toggle("aktif", s === sekme);
-  });
+  // Denetim tamamlanmamış/kaydedilmemişse engelle
+  if (!await raporUretimineIzinVarMi("rapor")) return;
+  yapayZekaRaporuOlustur();
 }
 
 // ============================================================
@@ -7710,11 +7655,12 @@ async function yapayZekaRaporuOlustur() {
                   text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.06)">
         <div style="font-size:48px; margin-bottom:16px">📋</div>
         <h3 style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:8px">
-          Henüz Denetim Kaydı Yok
+          Henüz Kayıtlı Denetim Bulunmamaktadır
         </h3>
-        <p style="font-size:13px; color:#64748b; line-height:1.7; max-width:360px; margin:0 auto 20px">
-          Yapay zeka raporu oluşturabilmek için sisteme en az bir tamamlanmış
-          denetim kaydı girilmiş olması gerekmektedir.
+        <p style="font-size:13px; color:#64748b; line-height:1.7; max-width:400px; margin:0 auto 20px">
+          Rapor ve analiz oluşturulabilmesi için sisteme en az bir tamamlanmış ve
+          kaydedilmiş denetim kaydının girilmiş olması gerekmektedir.
+          Lütfen önce bir denetim gerçekleştirin.
         </p>
         <button onclick="sayfayiGoster('yeniDenetim')"
           style="padding:11px 24px; background:#3b82f6; color:white; border:none;
@@ -8205,12 +8151,7 @@ async function yapayZekaRaporuOlustur() {
               🤖 Bu rapor sistem verileri analiz edilerek otomatik oluşturulmuştur.
             </span>
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-              <select id="pdfOtelSec" style="padding:10px 14px; border:2px solid #e2e8f0;
-                border-radius:10px; font-size:13px; outline:none; background:white; cursor:pointer">
-                <option value="">-- Otel Seçin --</option>
-                ${[...new Set(kayitlar.map(k=>k.otelAdi).filter(Boolean))].map(o=>`<option value="${o}">${o}</option>`).join("")}
-              </select>
-              <button onclick="profesyonelPDFIndir(document.getElementById('pdfOtelSec').value)"
+              <button onclick="profesyonelPDFIndir()"
                 style="padding:10px 20px; background:linear-gradient(135deg,#1e3a5f,#2d5986);
                        border:none; border-radius:10px; font-size:13px; font-weight:700;
                        color:white; cursor:pointer; display:flex; align-items:center; gap:8px">
@@ -8219,8 +8160,117 @@ async function yapayZekaRaporuOlustur() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div id="yzRaporAlani" style="margin-top:8px"></div>
+
       </div>`;
   }, 1200);
+}
+
+// ============================================================
+// RAPOR ÜRETİM İZİN KONTROLÜ — 3 Durum
+// ============================================================
+async function raporUretimineIzinVarMi(kaynak) {
+
+  // DURUM 1: Aktif devam eden denetim var
+  if (window._aktifDenetim) {
+    const d = window._aktifDenetim;
+
+    // Kaç soru var, kaçı cevaplandı?
+    let toplamSoru = 0, cevaplanan = 0;
+    (d.secilenBirimler || []).forEach(birimId => {
+      const birim = (typeof DENETIM_VERITABANI !== "undefined")
+        ? DENETIM_VERITABANI.find(b => b.id === birimId) : null;
+      birim?.bolumler?.forEach(bolum => {
+        bolum.sorular?.forEach(soru => {
+          toplamSoru++;
+          const c = d.cevaplar?.[birimId]?.[bolum.bolumNo]?.sorular?.[soru.id];
+          if (c != null) cevaplanan++;
+        });
+      });
+    });
+
+    const eksik = toplamSoru - cevaplanan;
+
+    if (eksik > 0) {
+      // DURUM 2: Denetim devam ediyor, eksik sorular var
+      const mesaj =
+        `Denetim Süreci Tamamlanmadı
+
+` +
+        `Toplam ${toplamSoru} değerlendirme kriterinden ${cevaplanan} tanesi yanıtlanmış olup ` +
+        `${eksik} kriter henüz değerlendirilmemiştir.
+
+` +
+        `Eksik kriterler tamamlandıktan sonra denetim kaydedilerek resmi rapor oluşturulabilir. ` +
+        `Denetimi kaldığınız yerden sürdürmek için denetim ekranına dönebilirsiniz.`;
+      if (kaynak === "pdf") {
+        alert(mesaj);
+      } else {
+        _uyariGoster("mavi",
+          "Denetim Süreci Tamamlanmadı",
+          `Toplam <b>${toplamSoru}</b> değerlendirme kriterinden <b>${cevaplanan}</b> tanesi yanıtlanmış olup
+           <b>${eksik} kriter</b> henüz değerlendirilmemiştir.<br><br>
+           Eksik kriterler tamamlandıktan sonra denetim kaydedilerek resmi rapor oluşturulabilir.
+           Denetimi kaldığınız yerden sürdürmek için denetim ekranına dönebilirsiniz.`
+        );
+      }
+      return false;
+
+    } else {
+      // DURUM 3: Tüm sorular dolu ama kaydet'e basılmamış
+      const mesaj =
+        `Denetim Kaydı Beklemede
+
+` +
+        `Tüm ${toplamSoru} değerlendirme kriteri başarıyla yanıtlanmış; ancak denetim ` +
+        `henüz sisteme kaydedilmemiştir.
+
+` +
+        `Raporun resmi kayıt statüsü kazanabilmesi ve rapor oluşturma işleminin ` +
+        `gerçekleştirilebilmesi için lütfen "Kaydet" işlemini tamamlayın.`;
+      if (kaynak === "pdf") {
+        alert(mesaj);
+      } else {
+        _uyariGoster("sari",
+          "Denetim Kaydı Beklemede",
+          `Tüm <b>${toplamSoru} değerlendirme kriteri</b> başarıyla yanıtlanmış; ancak denetim
+           henüz sisteme kaydedilmemiştir.<br><br>
+           Raporun resmi kayıt statüsü kazanabilmesi için lütfen <b>Kaydet</b> işlemini tamamlayın.`
+        );
+      }
+      return false;
+    }
+  }
+
+  // DURUM 1b: Hiç kayıt yok — yapayZekaRaporuOlustur zaten halleder
+  // buraya düşerse izin var
+  return true;
+}
+
+// Uyarı kutusu yardımcısı
+function _uyariGoster(tip, baslik, icerik) {
+  const renkler = {
+    mavi: { bg:"#eff6ff", border:"#93c5fd", bas:"#1e40af", yazi:"#1e3a8a" },
+    sari: { bg:"#fffbeb", border:"#f59e0b", bas:"#92400e", yazi:"#78350f" },
+    kirmizi: { bg:"#fef2f2", border:"#fca5a5", bas:"#991b1b", yazi:"#7f1d1d" }
+  };
+  const r = renkler[tip] || renkler.sari;
+  const alan = document.getElementById("yzRaporAlani");
+  if (!alan) return;
+  alan.innerHTML = `
+    <div style="background:${r.bg}; border:2px solid ${r.border}; border-radius:14px;
+                padding:20px 24px; display:flex; align-items:flex-start; gap:16px; margin-top:8px">
+      <div>
+        <strong style="font-size:14px; color:${r.bas}; display:block; margin-bottom:6px">
+          ${baslik}
+        </strong>
+        <p style="font-size:13px; color:${r.yazi}; margin:0; line-height:1.7">
+          ${icerik}
+        </p>
+      </div>
+    </div>`;
 }
 
 // ============================================================
@@ -8353,7 +8403,7 @@ function yorumUret(b) {
     : sec(tutarlilikYorumlari.normal);
   const veriMetin = b.sayi === 1
     ? sec(veriGucuYorumlari.tek)
-        : b.sayi <= 3
+    : b.sayi <= 3
     ? sec(veriGucuYorumlari.az)
     : sec(veriGucuYorumlari.yeterli);
 
@@ -8867,9 +8917,17 @@ function aySecenekleriOlustur(kayitlar) {
 // Her birim ayrı sayfa(lar), uzun yorum + fotoğraflar dahil
 // ============================================================
 async function profesyonelPDFIndir(seciliOtel) {
+  // Denetim tamamlanmamış/kaydedilmemişse engelle
+  if (!await raporUretimineIzinVarMi("pdf")) return;
+
+  // Otel seçilmemişse son denetimin otelini kullan
   if (!seciliOtel) {
-    alert("Lütfen önce bir otel seçin!");
-    return;
+    const kayitlar = await denetimleriGetir();
+    if (!kayitlar || kayitlar.length === 0) {
+      alert("Henüz tamamlanmış denetim kaydı bulunamadı!\nDenetimi tamamlayıp kaydedin.");
+      return;
+    }
+    seciliOtel = kayitlar[kayitlar.length - 1].otelAdi;
   }
 
   if (typeof window.jspdf === "undefined") {
@@ -9296,50 +9354,67 @@ async function profesyonelPDFIndir(seciliOtel) {
     _aktifAltBaslik = birimSirali.length + " birim";
     yeniSayfa(_aktifBaslik, _aktifAltBaslik);
 
-    birimSirali.forEach((b, i) => {
-      sayfaKontrol(15, _aktifBaslik, _aktifAltBaslik);
-      const renk = puanRenk(b.ort);
-      const oran = b.ort / 100;
-      const barW = 65;
-      const barX = MARGIN + 105;
+    // ── DİKEY SÜTUN GRAFİĞİ — en düşükten en yükseğe ──
+    const grafBirimler = [...birimSirali].sort((a, b2) => a.ort - b2.ort);
+    const GRAF_Y_TABAN = _gy + 95;
+    const GRAF_H_MAX   = 80;
+    const sutunSayisi  = Math.min(grafBirimler.length, 20);
+    const sutunW       = Math.min((ICALAN - 2) / sutunSayisi, 16);
+    const bosluk       = 1.5;
 
-      doc.setFillColor(i % 2 === 0 ? 248 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 252 : 255);
-      doc.rect(MARGIN, _gy - 3, ICALAN, 13, "F");
-
-      // Sıra no
-      doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...renk);
-      doc.text(String(i + 1), MARGIN + 3, _gy + 5);
-
-      // Birim adı
+    // Izgara çizgileri
+    [0, 25, 50, 75, 100].forEach(deger => {
+      const gy = GRAF_Y_TABAN - (deger / 100) * GRAF_H_MAX;
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.2);
+      doc.line(MARGIN, gy, MARGIN + ICALAN, gy);
       doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(30, 41, 59);
-      const adKisalt = b.ad.length > 32 ? b.ad.substring(0, 32) + "…" : b.ad;
-      doc.text(adKisalt, MARGIN + 12, _gy + 5);
-
-      // Bar
-      doc.setFillColor(226, 232, 240);
-      doc.roundedRect(barX, _gy, barW, 7, 2, 2, "F");
-      if (oran > 0) {
-        doc.setFillColor(...renk);
-        doc.roundedRect(barX, _gy, Math.max(oran * barW, 2), 7, 2, 2, "F");
-      }
-
-      // Puan + etiket
-      doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(...renk);
-      doc.text(String(b.ort), W - MARGIN, _gy + 5, { align: "right" });
-
-      doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "normal");
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(puanEtiket(b.ort), barX + barW + 2, _gy + 5);
-
-      _gy += 13;
+      doc.setFontSize(6);
+      doc.setTextColor(160, 160, 160);
+      doc.text(String(deger), MARGIN - 2, gy + 1.5, { align: "right" });
     });
+
+    // Sütunlar
+    grafBirimler.slice(0, sutunSayisi).forEach((b2, i) => {
+      const renk2     = puanRenk(b2.ort);
+      const yukseklik = Math.max((b2.ort / 100) * GRAF_H_MAX, 1.5);
+      const sx        = MARGIN + i * (sutunW + bosluk);
+      const sy        = GRAF_Y_TABAN - yukseklik;
+
+      // Dolgu (açık ton)
+      doc.setFillColor(
+        Math.min(255, renk2[0] + 110),
+        Math.min(255, renk2[1] + 110),
+        Math.min(255, renk2[2] + 110)
+      );
+      doc.roundedRect(sx, sy, sutunW - bosluk, yukseklik, 1, 1, "F");
+
+      // Çerçeve
+      doc.setDrawColor(...renk2);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(sx, sy, sutunW - bosluk, yukseklik, 1, 1, "S");
+
+      // Puan üstte
+      doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(...renk2);
+      doc.text(String(b2.ort), sx + (sutunW - bosluk) / 2, sy - 1.5, { align: "center" });
+
+      // Birim adı altta, 45 derece
+      doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "normal");
+      doc.setFontSize(5.5);
+      doc.setTextColor(50, 65, 85);
+      const adK = b2.ad.length > 16 ? b2.ad.substring(0, 16) + "…" : b2.ad;
+      doc.text(adK, sx + (sutunW - bosluk) / 2, GRAF_Y_TABAN + 3, { align: "center", angle: 45 });
+    });
+
+    // Taban çizgisi
+    doc.setDrawColor(100, 116, 139);
+    doc.setLineWidth(0.5);
+    doc.line(MARGIN, GRAF_Y_TABAN, MARGIN + ICALAN, GRAF_Y_TABAN);
+
+    _gy = GRAF_Y_TABAN + 26;
+
 
     // Stratejik öneriler
     _gy += 6;
@@ -9347,19 +9422,16 @@ async function profesyonelPDFIndir(seciliOtel) {
     bolumBasligi("STRATEJİK ÖNERİLER");
 
     const kritikBirimler = birimSirali.filter(b => b.ort < 50);
-    const oneriler = [
-      genelOrt >= 85
-        ? "Mevcut kalite seviyesini korumak için periyodik denetim sıklığını optimize edin."
-        : "Genel ortalamayı 85+ seviyesine taşımak için en düşük puanlı birimlere odaklanın.",
-      kritikBirimler.length > 0
-        ? `Kritik birimler: ${kritikBirimler.slice(0,2).map(b=>b.ad).join(", ")} — acil aksiyon gerektirir.`
-        : "Tüm birimler kabul edilebilir seviyede. Üst performansı yakalamak için çapraz mentorluk uygulayın.",
-      kayitlar.length < 10
-        ? "Güvenilir istatistikler için denetim sıklığını artırın; en az 10-15 kayıt hedefleyin."
-        : "Aylık kapanış raporlarıyla yönetim kuruluna düzenli sunum yapılması önerilir.",
-      "Denetim sonuçlarını birim yöneticileriyle şeffaf biçimde paylaşarak hesap verebilirliği güçlendirin.",
-      "Misafir memnuniyet anketleri ile denetim puanları arasındaki korelasyonu analiz edin."
-    ];
+    // Birim bazlı yorumUret ile PDF tavsiye metinleri
+    const oneriler = birimSirali.slice(0, 5).map(b => yorumUret(b));
+    // Veri yoksa fallback
+    if (oneriler.length === 0) {
+      oneriler.push(
+        genelOrt >= 85
+          ? "Mevcut kalite seviyesini korumak için periyodik denetim sıklığını optimize edin."
+          : "Genel ortalamayı 85+ seviyesine taşımak için en düşük puanlı birimlere odaklanın."
+      );
+    }
     oneriler.forEach((o, i) => {
       sayfaKontrol(16, _aktifBaslik, _aktifAltBaslik);
       doc.setFillColor(240, 253, 244);
@@ -9764,6 +9836,153 @@ async function profesyonelPDFIndir(seciliOtel) {
       doc.setLineWidth(0.5);
       doc.line(MARGIN, _gy, W - MARGIN, _gy);
       _gy += 8;
+    }
+
+    // ── SORU BAZLI DETAY SAYFASI ──
+    // Son denetimin cevaplarını bul
+    const tumKayitlar = await denetimleriGetir();
+    const sonKayit = tumKayitlar && tumKayitlar.length > 0
+      ? tumKayitlar.filter(k => k.otelAdi === seciliOtel).pop() || tumKayitlar[tumKayitlar.length-1]
+      : null;
+
+    if (sonKayit && sonKayit.cevaplar && typeof DENETIM_VERITABANI !== 'undefined') {
+      _aktifBaslik = "SORU BAZLI DEĞERLENDİRME";
+      _aktifAltBaslik = seciliOtel;
+      yeniSayfa(_aktifBaslik, _aktifAltBaslik);
+      _gy = 48;
+
+      // Birimler — küçükten büyüğe (en düşük puanlı önce)
+      const birimlerSirali = (sonKayit.secilenBirimler || [])
+        .map(bid => {
+          const birim = DENETIM_VERITABANI.find(b => b.id === bid);
+          const cevap = sonKayit.cevaplar?.[bid] || {};
+          let topP = 0, topS = 0;
+          birim?.bolumler?.forEach(bol => {
+            Object.values(cevap[bol.bolumNo]?.sorular || {}).forEach(p => { topP += p; topS++; });
+          });
+          const ort = topS > 0 ? Math.round(topP/topS) : null;
+          return { birim, bid, cevap, ort };
+        })
+        .sort((a,b) => (a.ort ?? 999) - (b.ort ?? 999)); // küçükten büyüğe
+
+      let soruSiraNo = 0;
+
+      for (const { birim, bid, cevap } of birimlerSirali) {
+        if (!birim) continue;
+
+        // Birim başlığı
+        sayfaKontrol(14, _aktifBaslik, _aktifAltBaslik);
+        // Çerçeve (stroke) — dolgu yok
+        doc.setDrawColor(30, 58, 95);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(MARGIN, _gy - 2, ICALAN, 12, 2, 2, "S");
+        doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(30, 58, 95);
+        doc.text(birim.birimAdi.toUpperCase(), MARGIN + 4, _gy + 6);
+        _gy += 16;
+
+        for (const bolum of (birim.bolumler || [])) {
+          const bolumCevap = cevap[bolum.bolumNo] || {};
+
+          // Bölüm adı
+          sayfaKontrol(10, _aktifBaslik, _aktifAltBaslik);
+          doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+          doc.setFontSize(8);
+          doc.setTextColor(71, 85, 105);
+          doc.text(bolum.bolumNo + ". " + bolum.bolumAdi, MARGIN + 2, _gy);
+          _gy += 8;
+
+          for (const soru of (bolum.sorular || [])) {
+            soruSiraNo++;
+            const puan = bolumCevap.sorular?.[soru.id];
+            const renk = puan != null ? puanRenk(puan) : [148, 163, 184];
+            const etiket = puan != null ? puanEtiket(puan) : "Girilmedi";
+
+            sayfaKontrol(10, _aktifBaslik, _aktifAltBaslik);
+
+            // Satır arka planı
+            doc.setFillColor(soruSiraNo % 2 === 0 ? 248 : 255, soruSiraNo % 2 === 0 ? 250 : 255, soruSiraNo % 2 === 0 ? 252 : 255);
+            doc.rect(MARGIN, _gy - 3, ICALAN, 10, "F");
+
+            // Sıra no
+            doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+            doc.setFontSize(7.5);
+            doc.setTextColor(...renk);
+            doc.text(String(soruSiraNo), MARGIN + 3, _gy + 4);
+
+            // Soru metni
+            doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(30, 41, 59);
+            const soruKisa = soru.metin.length > 70 ? soru.metin.substring(0, 70) + "…" : soru.metin;
+            doc.text(soruKisa, MARGIN + 10, _gy + 4);
+
+            // Puan
+            doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...renk);
+            doc.text(puan != null ? String(puan) : "—", W - MARGIN - 22, _gy + 4, { align: "right" });
+
+            // Etiket
+            doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "normal");
+            doc.setFontSize(6.5);
+            doc.setTextColor(...renk);
+            doc.text(etiket, W - MARGIN, _gy + 4, { align: "right" });
+
+            _gy += 10;
+
+            // FOTOĞRAF — soruya ait varsa hemen altına ekle
+            const soruFotolar = (_fotografDepo || {})[soru.id] || [];
+            if (soruFotolar.length > 0) {
+              const FOTO_W = 50, FOTO_H = 38;
+              let fotoX = MARGIN + 10;
+
+              for (let fi = 0; fi < soruFotolar.length; fi++) {
+                try {
+                  const base64 = await imgBase64(soruFotolar[fi].url);
+                  if (!base64) continue;
+
+                  sayfaKontrol(FOTO_H + 12, _aktifBaslik, _aktifAltBaslik);
+
+                  doc.addImage(base64, "JPEG", fotoX, _gy, FOTO_W, FOTO_H);
+
+                  // Soru numarası — fotoğrafın sağ üst köşesine
+                  doc.setFillColor(...renk);
+                  doc.roundedRect(fotoX + FOTO_W - 12, _gy, 12, 8, 1, 1, "F");
+                  doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "bold");
+                  doc.setFontSize(6);
+                  doc.setTextColor(255, 255, 255);
+                  doc.text("S" + soruSiraNo, fotoX + FOTO_W - 6, _gy + 5, { align: "center" });
+
+                  fotoX += FOTO_W + 6;
+                  if (fotoX + FOTO_W > W - MARGIN) {
+                    fotoX = MARGIN + 10;
+                    _gy += FOTO_H + 6;
+                  }
+                } catch(e) { console.warn("[PDF] Foto eklenemedi:", e); }
+              }
+              _gy += FOTO_H + 8;
+            }
+          }
+
+          // Bölüm notu varsa ekle
+          if (bolumCevap.not) {
+            sayfaKontrol(12, _aktifBaslik, _aktifAltBaslik);
+            doc.setFont(_fontYuklendi ? FONTNAME : "helvetica", "italic");
+            doc.setFontSize(7);
+            doc.setTextColor(100, 116, 139);
+            const notSatirlar = doc.splitTextToSize("Not: " + bolumCevap.not, ICALAN - 10);
+            notSatirlar.forEach(satir => {
+              doc.text(satir, MARGIN + 4, _gy);
+              _gy += 6;
+            });
+          }
+          _gy += 4;
+        }
+        _gy += 6;
+      }
+      footerCiz();
     }
 
     footerCiz();
@@ -10614,7 +10833,7 @@ if (typeof basariToast === "undefined") {
 // OTOMATİK CACHE TEMİZLEME — Kullanıcı hiçbir şey yapmak zorunda değil
 // ============================================================
 (function() {
-  const VERSIYON = "2026031316"; // Her güncellemede bu sayıyı artır
+  const VERSIYON = "2026031328"; // Her güncellemede bu sayıyı artır
   const kayitliVersiyon = localStorage.getItem("app_versiyon");
   
   if (kayitliVersiyon !== VERSIYON) {
