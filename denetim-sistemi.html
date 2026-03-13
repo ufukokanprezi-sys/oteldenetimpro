@@ -981,13 +981,6 @@ async function girisYap() {
       rol: "admin",
       _kurtarma: true
     };
-    const kurtarmaKullanici = {
-      id: "kurtarma_acil",
-      ad: "Acil Kurtarma",
-      kullaniciAdi: "KURTARMA",
-      rol: "admin",
-      _kurtarma: true
-    };
     localStorage.setItem("aktifKullanici", JSON.stringify(kurtarmaKullanici));
     sessionStorage.setItem("aktifKullanici", JSON.stringify(kurtarmaKullanici));
     document.getElementById("sidebarKullanici").textContent = "KURTARMA";
